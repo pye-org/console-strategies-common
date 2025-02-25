@@ -37,7 +37,7 @@ type IClient interface {
 
 	// ExecuteTask pass an executable for a subscriber's account and execute it using Console Relayer, if it complies with the policy
 	// POST /v1/automations/tasks/execute/:chainID
-	ExecuteTask(ctx context.Context, chainID int64, reqBody *ExecuteTaskRequestBody) (string, error)
+	ExecuteTask(ctx context.Context, chainID int64, reqBody *ExecuteTaskRequestBody) (*TaskInfo, error)
 
 	// GetTaskStatus retrieves the status of a task by its ID
 	// GET /v1/relayer/tasks/status/:taskId
