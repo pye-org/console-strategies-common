@@ -9,7 +9,7 @@ type IConsole interface {
 	// Execute builds and executes a task using the provided parameters.
 	// It encodes, signs, and transforms the transaction data, then sends the request
 	// to the Brahma server via the IClient.
-	Execute(ctx context.Context, params *ExecuteParams) (string, error)
+	Execute(ctx context.Context, params *ExecuteParams) (*TaskInfo, error)
 }
 
 // IClient is the interface for interacting with the Brahma server
@@ -37,7 +37,7 @@ type IClient interface {
 
 	// ExecuteTask pass an executable for a subscriber's account and execute it using Console Relayer, if it complies with the policy
 	// POST /v1/automations/tasks/execute/:chainID
-	ExecuteTask(ctx context.Context, chainID int64, reqBody *ExecuteTaskRequestBody) (string, error)
+	ExecuteTask(ctx context.Context, chainID int64, reqBody *ExecuteTaskRequestBody) (*TaskInfo, error)
 
 	// GetTaskStatus retrieves the status of a task by its ID
 	// GET /v1/relayer/tasks/status/:taskId

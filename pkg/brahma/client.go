@@ -2,10 +2,9 @@ package brahma
 
 import (
 	"context"
-	"fmt"
-	"github.com/go-resty/resty/v2"
-	"github.com/goccy/go-json"
 	"strconv"
+
+	"github.com/go-resty/resty/v2"
 )
 
 type Client struct {
@@ -78,12 +77,9 @@ func (c *Client) GetSubscriptionsByRegistryID(ctx context.Context, registryID st
 	return subscriptions, nil
 }
 
-func (c *Client) ExecuteTask(ctx context.Context, chainID int64, reqBody *ExecuteTaskRequestBody) (string, error) {
+func (c *Client) ExecuteTask(ctx context.Context, chainID int64, reqBody *ExecuteTaskRequestBody) (*TaskInfo, error) {
 	var result ExecuteTaskResult
 	req := c.client.R().SetContext(ctx)
-
-	data, _ := json.Marshal(reqBody)
-	fmt.Printf("%v\n", string(data))
 
 	resp, err := req.SetResult(&result).
 		SetPathParam("chainID", strconv.FormatInt(chainID, 10)).
@@ -99,15 +95,17 @@ func (c *Client) ExecuteTask(ctx context.Context, chainID int64, reqBody *Execut
 		}).
 		Post(ExecuteTaskPath)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if !resp.IsSuccess() {
-		fmt.Println(resp.String())
-		return "", ErrExecuteTaskFailed
+		return nil, ErrExecuteTaskFailed
 	}
 
-	return result.Data.Data.TaskID, nil
+	return &TaskInfo{
+		TaskId: result.Data.Data.TaskID,
+		TxHash: result.Data.Data.OutputTransactionHash,
+	}, nil
 }
 
 func (c *Client) GetTaskStatus(ctx context.Context, taskID string) (*TaskStatus, error) {

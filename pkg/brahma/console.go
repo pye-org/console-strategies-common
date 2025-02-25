@@ -3,6 +3,8 @@ package brahma
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/Brahma-fi/go-safe/encoders"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -10,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/pye-org/console-strategies-common/pkg/abi/multisendcallonly"
-	"time"
 
 	"github.com/pye-org/console-strategies-common/pkg/abi/executorplugin"
 	"github.com/pye-org/console-strategies-common/pkg/rpcregistry"
@@ -32,7 +33,7 @@ func NewConsole(client IClient, rpcRegistry rpcregistry.IRegistry, executorPlugi
 }
 
 // Execute executes a safe transaction and return task ID
-func (c *Console) Execute(ctx context.Context, params *ExecuteParams) (string, error) {
+func (c *Console) Execute(ctx context.Context, params *ExecuteParams) (*TaskInfo, error) {
 	safeTx, err := encoders.GetEncodedSafeTx(
 		common.Address{},
 		params.MultiSendCallOnlyAddress,
@@ -41,13 +42,13 @@ func (c *Console) Execute(ctx context.Context, params *ExecuteParams) (string, e
 		params.ChainID,
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Step 1: get executor nonce
 	executorPluginCaller, err := c.newExecutorPluginCaller(params.ChainID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	nonce, err := executorPluginCaller.ExecutorNonce(
@@ -56,12 +57,12 @@ func (c *Console) Execute(ctx context.Context, params *ExecuteParams) (string, e
 		params.ExecutorAddress,
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	data, err := hexutil.Decode(safeTx.Data.String())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Step 2: get executable digest
@@ -88,12 +89,12 @@ func (c *Console) Execute(ctx context.Context, params *ExecuteParams) (string, e
 		},
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	// Step 3: sign the executable digest
 	signature, err := params.Signer.Sign(ctx, executableDigest)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Step 4: prepare and send the execute task request
@@ -109,17 +110,17 @@ func (c *Console) Execute(ctx context.Context, params *ExecuteParams) (string, e
 		},
 	}
 
-	taskId, err := c.client.ExecuteTask(
+	taskInfo, err := c.client.ExecuteTask(
 		ctx,
 		params.ChainID,
 		executeTaskRequestBody,
 	)
 
 	if err != nil {
-		return taskId, err
+		return taskInfo, err
 	}
 
-	return taskId, c.waitForTaskSuccess(ctx, taskId, TaskTimeoutInSecond*time.Second)
+	return taskInfo, c.waitForTaskSuccess(ctx, taskInfo.TaskId, TaskTimeoutInSecond*time.Second)
 }
 
 func (c *Console) newExecutorPluginCaller(chainID int64) (*executorplugin.ExecutorPluginCaller, error) {
