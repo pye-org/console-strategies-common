@@ -9,7 +9,7 @@ type IConsole interface {
 	// Execute builds and executes a task using the provided parameters.
 	// It encodes, signs, and transforms the transaction data, then sends the request
 	// to the Brahma server via the IClient.
-	Execute(ctx context.Context, params *ExecuteParams) (string, error)
+	Execute(ctx context.Context, params *ExecuteParams) (*TaskInfo, error)
 }
 
 // IClient is the interface for interacting with the Brahma server

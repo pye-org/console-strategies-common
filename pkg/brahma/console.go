@@ -3,6 +3,8 @@ package brahma
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/Brahma-fi/go-safe/encoders"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -10,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/pye-org/console-strategies-common/pkg/abi/multisendcallonly"
-	"time"
 
 	"github.com/pye-org/console-strategies-common/pkg/abi/executorplugin"
 	"github.com/pye-org/console-strategies-common/pkg/rpcregistry"
@@ -32,7 +33,7 @@ func NewConsole(client IClient, rpcRegistry rpcregistry.IRegistry, executorPlugi
 }
 
 // Execute executes a safe transaction and return task ID
-func (c *Console) Execute(ctx context.Context, params *ExecuteParams) (string, error) {
+func (c *Console) Execute(ctx context.Context, params *ExecuteParams) (*TaskInfo, error) {
 	safeTx, err := encoders.GetEncodedSafeTx(
 		common.Address{},
 		params.MultiSendCallOnlyAddress,
@@ -41,13 +42,13 @@ func (c *Console) Execute(ctx context.Context, params *ExecuteParams) (string, e
 		params.ChainID,
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Step 1: get executor nonce
 	executorPluginCaller, err := c.newExecutorPluginCaller(params.ChainID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	nonce, err := executorPluginCaller.ExecutorNonce(
@@ -56,12 +57,12 @@ func (c *Console) Execute(ctx context.Context, params *ExecuteParams) (string, e
 		params.ExecutorAddress,
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	data, err := hexutil.Decode(safeTx.Data.String())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Step 2: get executable digest
@@ -88,12 +89,12 @@ func (c *Console) Execute(ctx context.Context, params *ExecuteParams) (string, e
 		},
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	// Step 3: sign the executable digest
 	signature, err := params.Signer.Sign(ctx, executableDigest)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Step 4: prepare and send the execute task request
@@ -116,10 +117,18 @@ func (c *Console) Execute(ctx context.Context, params *ExecuteParams) (string, e
 	)
 
 	if err != nil {
-		return taskId, err
+		return nil, err
 	}
 
-	return taskId, c.waitForTaskSuccess(ctx, taskId, TaskTimeoutInSecond*time.Second)
+	txHash, err := c.waitForTaskSuccess(ctx, taskId, TaskTimeoutInSecond*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TaskInfo{
+		TaskId: taskId,
+		TxHash: txHash,
+	}, nil
 }
 
 func (c *Console) newExecutorPluginCaller(chainID int64) (*executorplugin.ExecutorPluginCaller, error) {
@@ -131,9 +140,9 @@ func (c *Console) newExecutorPluginCaller(chainID int64) (*executorplugin.Execut
 	return executorplugin.NewExecutorPluginCaller(c.executorPluginAddress, rpcClient)
 }
 
-func (c *Console) waitForTaskSuccess(ctx context.Context, taskID string, timeout time.Duration) error {
+func (c *Console) waitForTaskSuccess(ctx context.Context, taskID string, timeout time.Duration) (string, error) {
 	if taskID == "" {
-		return nil
+		return "", nil
 	}
 
 	timeoutTimer := time.NewTimer(timeout)
@@ -145,7 +154,7 @@ func (c *Console) waitForTaskSuccess(ctx context.Context, taskID string, timeout
 	for {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("timeout reached while waiting for task %s to succeed", taskID)
+			return "", fmt.Errorf("timeout reached while waiting for task %s to succeed", taskID)
 		case <-ticker.C:
 			status, err := c.client.GetTaskStatus(ctx, taskID)
 			if err != nil {
@@ -157,16 +166,16 @@ func (c *Console) waitForTaskSuccess(ctx context.Context, taskID string, timeout
 			}
 
 			if status.Status == TaskStatusSuccessful {
-				return nil
+				return status.OutputTransactionHash, nil
 			} else if status.Status == TaskStatusExecuting {
 				continue
 			} else if status.Status == TaskStatusCancelled {
-				return fmt.Errorf("task %s was cancelled", taskID)
+				return "", fmt.Errorf("task %s was cancelled", taskID)
 			} else {
-				return fmt.Errorf("task %s failed with status %s", taskID, status.Status)
+				return "", fmt.Errorf("task %s failed with status %s", taskID, status.Status)
 			}
 		case <-timeoutTimer.C:
-			return fmt.Errorf("timeout reached while waiting for task %s to succeed", taskID)
+			return "", fmt.Errorf("timeout reached while waiting for task %s to succeed", taskID)
 		}
 	}
 }

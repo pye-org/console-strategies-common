@@ -1,11 +1,12 @@
 package brahma
 
 import (
+	"math/big"
+	"time"
+
 	"github.com/Brahma-fi/go-safe/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pye-org/console-strategies-common/pkg/crypto"
-	"math/big"
-	"time"
 )
 
 // Common =============================================================================================================="
@@ -147,9 +148,9 @@ type TaskStatus struct {
 			TransactionHash interface{} `json:"transactionHash"`
 		} `json:"response"`
 	} `json:"metadata"`
-	OutputTransactionHash interface{} `json:"outputTransactionHash"`
-	Status                string      `json:"status"`
-	CreatedAt             time.Time   `json:"createdAt"`
+	OutputTransactionHash string    `json:"outputTransactionHash"`
+	Status                string    `json:"status"`
+	CreatedAt             time.Time `json:"createdAt"`
 }
 
 // =====================================================================================================================
@@ -212,7 +213,8 @@ type ExecuteTaskRequestBody struct {
 type ExecuteTaskResult struct {
 	Data struct {
 		Data struct {
-			TaskID string `json:"taskId"`
+			TaskID                string `json:"taskId"`
+			OutputTransactionHash string `json:"outputTransactionHash"`
 		} `json:"data"`
 	}
 }
@@ -236,4 +238,9 @@ type ConsoleInfo struct {
 	EOA            string    `json:"eoa"`
 	ChainId        int64     `json:"chainId"`
 	CreatedAt      time.Time `json:"createdAt"`
+}
+
+type TaskInfo struct {
+	TaskId string `json:"taskId"`
+	TxHash string `json:"TxHash"`
 }

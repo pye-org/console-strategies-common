@@ -2,10 +2,9 @@ package brahma
 
 import (
 	"context"
-	"fmt"
-	"github.com/go-resty/resty/v2"
-	"github.com/goccy/go-json"
 	"strconv"
+
+	"github.com/go-resty/resty/v2"
 )
 
 type Client struct {
@@ -82,9 +81,6 @@ func (c *Client) ExecuteTask(ctx context.Context, chainID int64, reqBody *Execut
 	var result ExecuteTaskResult
 	req := c.client.R().SetContext(ctx)
 
-	data, _ := json.Marshal(reqBody)
-	fmt.Printf("%v\n", string(data))
-
 	resp, err := req.SetResult(&result).
 		SetPathParam("chainID", strconv.FormatInt(chainID, 10)).
 		SetBody(&ExecuteTaskRequest{
@@ -103,7 +99,6 @@ func (c *Client) ExecuteTask(ctx context.Context, chainID int64, reqBody *Execut
 	}
 
 	if !resp.IsSuccess() {
-		fmt.Println(resp.String())
 		return "", ErrExecuteTaskFailed
 	}
 
