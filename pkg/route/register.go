@@ -10,6 +10,10 @@ type IAdminAPI interface {
 	SetupAdminRoute(group *gin.RouterGroup)
 }
 
+type IInternalAPI interface {
+	SetupInternalRoute(group *gin.RouterGroup)
+}
+
 type IAPIGroup interface {
 	RegisterAPIs(*gin.RouterGroup)
 }
@@ -32,9 +36,9 @@ func RegisterAdminAPI(router gin.IRouter, api IAdminAPI, apiPath string) {
 	api.SetupAdminRoute(rg)
 }
 
-func RegisterInternalAPI(router gin.IRouter, api IAPI, apiPath string) {
+func RegisterInternalAPI(router gin.IRouter, api IInternalAPI, apiPath string) {
 	rg := router.Group(apiPath)
-	api.SetupRoute(rg)
+	api.SetupInternalRoute(rg)
 }
 
 func RegisterAPIGroup(router gin.IRouter, apiGroup IAPIGroup, apiGroupPath string) {
