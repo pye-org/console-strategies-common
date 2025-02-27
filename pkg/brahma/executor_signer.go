@@ -1,8 +1,9 @@
 package brahma
 
 import (
-	"github.com/pye-org/console-strategies-common/pkg/crypto"
 	"os"
+
+	"github.com/pye-org/console-strategies-common/pkg/crypto"
 )
 
 type ExecutorSigner struct {

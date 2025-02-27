@@ -1,6 +1,10 @@
 package brahma
 
-import "context"
+import (
+	"context"
+
+	"github.com/pye-org/console-strategies-common/pkg/crypto"
+)
 
 // IConsole is an interface that defines methods for interacting with the Brahma Console.
 // It acts as a service object that encapsulates encoding, signing, and transformation logic
@@ -42,4 +46,8 @@ type IClient interface {
 	// GetTaskStatus retrieves the status of a task by its ID
 	// GET /v1/relayer/tasks/status/:taskId
 	GetTaskStatus(ctx context.Context, taskID string) (*TaskStatus, error)
+}
+
+type IExecutorSigner interface {
+	GetExecutorSigner(address string) (crypto.ISigner, bool)
 }
