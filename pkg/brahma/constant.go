@@ -17,7 +17,7 @@ const (
 )
 
 const (
-	TaskTimeoutInSecond = 15
+	TaskTimeoutInSecond = 30
 )
 
 const (
